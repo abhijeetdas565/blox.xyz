@@ -1,0 +1,311 @@
+Section A
+1) 
+a)
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class WarehouseLocation {
+
+    public static Point findWarehouseLocation(List<Point> factories) {
+        int n = factories.size();
+
+        List<Point> sortedX = new ArrayList<>(factories);
+        List<Point> sortedY = new ArrayList<>(factories);
+        sortedX.sort(Comparator.comparingInt(a -> a.x));
+        sortedY.sort(Comparator.comparingInt(a -> a.y));
+
+        int medianX = sortedX.get(n / 2).x;
+        int medianY = sortedY.get(n / 2).y;
+
+        Point warehouseLocation = new Point(medianX, medianY);
+
+        return warehouseLocation;
+    }
+
+    public static void main(String[] args) {
+        List<Point> factories = new ArrayList<>();
+        factories.add(new Point(1, 5));
+        factories.add(new Point(2, 3));
+        factories.add(new Point(4, 6));
+        factories.add(new Point(7, 2));
+
+        Point warehouse = findWarehouseLocation(factories);
+        System.out.println("Strategic location of the warehouse: (" + warehouse.x + ", " + warehouse.y + ")");
+    }
+}
+
+b)
+import java.util.*;
+
+class Node {
+    int x, y; 
+    double cost; 
+    double heuristic;
+    Node parent; 
+
+    public Node(int x, int y, double cost, double heuristic, Node parent) {
+        this.x = x;
+        this.y = y;
+        this.cost = cost;
+        this.heuristic = heuristic;
+        this.parent = parent;
+    }
+}
+
+public class OptimumRouteFinder {
+
+    public static double calculateHeuristic(int x, int y, int destinationX, int destinationY) 
+    {
+        
+        return Math.abs(x - destinationX) + Math.abs(y - destinationY);
+    }
+
+    public static List<Node> findOptimumRoute(int[][] grid, int startX, int startY, int destinationX, int destinationY) {
+        int m = grid.length;
+        int n = grid[0].length;
+        boolean[][] visited = new boolean[m][n];
+
+        PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingDouble(node -> node.cost + node.heuristic));
+
+        Node startNode = new Node(startX, startY, 0, calculateHeuristic(startX, startY, destinationX, destinationY), null);
+        openSet.add(startNode);
+
+        while (!openSet.isEmpty()) {
+            Node current = openSet.poll();
+            int x = current.x;
+            int y = current.y;
+
+            if (x == destinationX && y == destinationY) {
+                List<Node> path = new ArrayList<>();
+                while (current != null) {
+                    path.add(0, current);
+                    current = current.parent;
+                }
+                return path;
+            }
+
+            visited[x][y] = true;
+
+            int[][] directions = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+            for (int[] dir : directions) {
+                int newX = x + dir[0];
+                int newY = y + dir[1];
+
+                if (newX >= 0 && newX < m && newY >= 0 && newY < n && !visited[newX][newY] && grid[newX][newY] != -1) {
+                    double newCost = current.cost + 1; // Cost to move to the adjacent cell is 1
+                    double newHeuristic = calculateHeuristic(newX, newY, destinationX, destinationY);
+                    Node newNode = new Node(newX, newY, newCost, newHeuristic, current);
+                    openSet.add(newNode);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static void main(String[] args) {
+        int[][] grid = {
+            {0, 0, 0, 0},
+            {0, -1, 0, 0},
+            {0, 0, -1, 0},
+            {0, 0, 0, 0}
+        };
+
+        int startX = 0;
+        int startY = 0;
+        int destinationX = 3;
+        int destinationY = 3;
+
+        List<Node> path = findOptimumRoute(grid, startX, startY, destinationX, destinationY);
+
+        if (path != null) {
+            System.out.println("Optimum route:");
+            for (Node node : path) {
+                System.out.println("(" + node.x + ", " + node.y + ")");
+            }
+        } else {
+            System.out.println("No path found.");
+        }
+    }
+}
+
+
+2)
+import java.util.BitSet;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class SessionIDGenerator {
+    private BitSet availableIDs;
+    private AtomicInteger nextID;
+
+    public SessionIDGenerator(int maxUsers) {
+        availableIDs = new BitSet(maxUsers);
+        availableIDs.set(0, maxUsers); 
+        nextID = new AtomicInteger(0);
+    }
+
+    public int getUniqueSessionID() {
+        int id = nextID.getAndIncrement();
+        int maxUsers = availableIDs.size();
+
+        int startID = id % maxUsers;
+        int availableID = availableIDs.nextSetBit(startID);
+        if (availableID == -1) {
+            availableID = availableIDs.nextSetBit(0);
+        }
+
+        availableIDs.clear(availableID);
+
+        return availableID;
+    }
+
+    public void releaseSessionID(int sessionID) {
+       
+        availableIDs.set(sessionID);
+    }
+
+    public static void main(String[] args) {
+        int maxUsers = 1000000; 
+        SessionIDGenerator idGenerator = new SessionIDGenerator(maxUsers);
+
+        int user1ID = idGenerator.getUniqueSessionID();
+        int user2ID = idGenerator.getUniqueSessionID();
+
+        System.out.println("User 1 ID: " + user1ID);
+        System.out.println("User 2 ID: " + user2ID);
+
+        idGenerator.releaseSessionID(user1ID);
+
+        int user3ID = idGenerator.getUniqueSessionID();
+        System.out.println("User 3 ID: " + user3ID);
+    }
+}
+
+
+Section B
+
+2)
+
+import java.util.concurrent.TimeUnit;
+
+public class RateLimiter {
+    private static final int CALL_LIMIT = 15;
+    private static final long TIME_WINDOW = 60_000; 
+    private static final long PENALTY_TIME = 60_000;
+    private int callCount;
+    private long startTime;
+
+    public RateLimiter() {
+        callCount = 0;
+        startTime = System.currentTimeMillis();
+    }
+
+    public synchronized String callAPI(String input) {
+        long currentTime = System.currentTimeMillis();
+
+        if (currentTime - startTime >= TIME_WINDOW) {
+            callCount = 0;
+            startTime = currentTime;
+        }
+
+        if (callCount >= CALL_LIMIT) {
+          
+            try {
+                TimeUnit.MILLISECONDS.sleep(PENALTY_TIME);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            callCount = 0;
+            startTime = System.currentTimeMillis();
+        }
+
+        callCount++;
+        return call_me(input); 
+    }
+
+    private String call_me(String input) {
+      
+        return "API call result for input: " + input;
+    }
+
+    public static void main(String[] args) {
+        RateLimiter rateLimiter = new RateLimiter();
+
+        for (int i = 1; i <= 20; i++) {
+            System.out.println("Calling API " + i + ": " + rateLimiter.callAPI("Data" + i));
+        }
+    }
+}
+
+3)
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+class BankAccount {
+    private String accountNumber;
+    private double balance;
+    private Lock lock;
+
+    public BankAccount(String accountNumber, double initialBalance) {
+        this.accountNumber = accountNumber;
+        this.balance = initialBalance;
+        this.lock = new ReentrantLock();
+    }
+
+    public void deposit(double amount) {
+        lock.lock();
+        try {
+            balance += amount;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void withdraw(double amount) {
+        lock.lock();
+        try {
+            balance -= amount;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public double getBalance() {
+        return balance;
+    }
+}
+
+public class MoneyTransferService {
+
+    public static void transferMoney(BankAccount sender, BankAccount receiver, double amount) {
+     
+        sender.lock.lock();
+        receiver.lock.lock();
+        try {
+            if (sender.getBalance() >= amount) {
+                sender.withdraw(amount);
+                receiver.deposit(amount);
+                System.out.println("Money transferred successfully.");
+            } else {
+                System.out.println("Insufficient funds.");
+            }
+        } finally {
+            sender.lock.unlock();
+            receiver.lock.unlock();
+        }
+    }
+
+    public static void main(String[] args) {
+        BankAccount accountA = new BankAccount("A12345", 1000.0);
+        BankAccount accountB = new BankAccount("B67890", 500.0);
+
+        double transferAmount = 200.0;
+
+        transferMoney(accountA, accountB, transferAmount);
+    }
+}
+
